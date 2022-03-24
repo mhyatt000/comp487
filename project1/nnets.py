@@ -6,12 +6,17 @@ from tensorflow.keras.layers import (
     Dense,
     Dropout,
     MaxPool2D,
+    AveragePooling2D,
     GlobalAvgPool2D,
     Concatenate,
+    BatchNormalization,
+    Activation,
+    ReLU,
 )
 from tensorflow.keras.models import Sequential
+import numpy as np
 
-# from d2l import tensorflow as d2l
+"""VISUAL GEOMETRY GROUP"""
 
 
 def vgg_block(num_convs, num_channels):
@@ -23,7 +28,7 @@ def vgg_block(num_convs, num_channels):
     return blk
 
 
-def vgg(conv_arch=()):
+def build_vgg(conv_arch=()):
 
     if not conv_arch:
         conv_arch = ((1, 64), (1, 128), (2, 256), (2, 512), (2, 512))
@@ -49,6 +54,9 @@ def vgg(conv_arch=()):
     return net
 
 
+"""NETWORK IN NETWORK"""
+
+
 def nin_block(num_channels, kernel_size, strides, padding):
     return Sequential(
         [
@@ -65,7 +73,7 @@ def nin_block(num_channels, kernel_size, strides, padding):
     )
 
 
-def nin():
+def build_nin():
     return Sequential(
         [
             nin_block(96, kernel_size=11, strides=4, padding="valid"),
@@ -84,6 +92,9 @@ def nin():
             Flatten(),
         ]
     )
+
+
+"""INCEPTION"""
 
 
 class Inception(tf.keras.Model):
@@ -111,7 +122,7 @@ class Inception(tf.keras.Model):
         return Concatenate()([p1, p2, p3, p4])
 
 
-def googlenet():
+def build_googlenet():
     """GoogLeNet with inception blocks"""
 
     return Sequential([_b1(), _b2(), _b3(), _b4(), _b5(), Dense(10)])
@@ -122,7 +133,9 @@ def _b1():
 
     return Sequential(
         [
-            Conv2D(64, 7, strides=2, padding="same", activation="relu"),
+            Conv2D(64, 7, strides=2, padding="same"),
+            BatchNormalization(),
+            ReLU(),
             MaxPool2D(pool_size=3, strides=2, padding="same"),
         ]
     )
@@ -180,6 +193,240 @@ def _b5():
     )
 
 
+"""RESNET"""
+
+
+class Residual(tf.keras.Model):
+    """The Residual block of ResNet."""
+
+    def __init__(self, num_channels, use_1x1conv=False, strides=1):
+        super().__init__()
+        self.conv1 = tf.keras.layers.Conv2D(
+            num_channels, padding="same", kernel_size=3, strides=strides
+        )
+        self.conv2 = tf.keras.layers.Conv2D(num_channels, kernel_size=3, padding="same")
+        self.conv3 = None
+        if use_1x1conv:
+            self.conv3 = tf.keras.layers.Conv2D(
+                num_channels, kernel_size=1, strides=strides
+            )
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.bn2 = tf.keras.layers.BatchNormalization()
+
+    def call(self, X):
+        Y = tf.keras.activations.relu(self.bn1(self.conv1(X)))
+        Y = self.bn2(self.conv2(Y))
+        if self.conv3 is not None:
+            X = self.conv3(X)
+        Y += X
+        return tf.keras.activations.relu(Y)
+
+
+class ResnetBlock(tf.keras.layers.Layer):
+    def __init__(
+        self, num_channels, num_residuals, first_block=False, use_se=False, **kwargs
+    ):
+        super(ResnetBlock, self).__init__(**kwargs)
+        self.residual_layers = []
+        for i in range(num_residuals):
+            if i == 0 and not first_block:
+                self.residual_layers.append(
+                    Residual(num_channels, use_1x1conv=True, strides=2)
+                    if not use_se
+                    else SEResidual(num_channels, use_1x1conv=True, strides=2)
+                )
+            else:
+                self.residual_layers.append(Residual(num_channels)
+                                            if not use_se else SEResidual(num_channels))
+
+    def call(self, X):
+        for layer in self.residual_layers.layers:
+            X = layer(X)
+        return X
+
+
+def build_resnet(use_se=False):
+
+    return Sequential(
+        [
+            _b1(),
+            ResnetBlock(64, 2, first_block=True, use_se=use_se),
+            ResnetBlock(128, 2, use_se=use_se),
+            ResnetBlock(256, 2, use_se=use_se),
+            ResnetBlock(512, 2, use_se=use_se),
+            GlobalAvgPool2D(),
+            Dense(10),
+        ]
+    )
+
+
+"""DENSENET"""
+
+
+class ConvBlock(tf.keras.layers.Layer):
+    """like resudual block but it appends layers instead of adding"""
+
+    def __init__(self, num_channels):
+        super(ConvBlock, self).__init__()
+        self.bn = BatchNormalization()
+        self.relu = ReLU()
+        self.conv = Conv2D(filters=num_channels, kernel_size=(3, 3), padding="same")
+
+        self.listLayers = [self.bn, self.relu, self.conv]
+
+    def call(self, x):
+        y = x
+        for layer in self.listLayers.layers:
+            y = layer(y)
+        y = tf.keras.layers.concatenate([x, y], axis=-1)
+        return y
+
+
+class DenseBlock(tf.keras.layers.Layer):
+    """implements ConvBlock"""
+
+    def __init__(self, num_convs, num_channels):
+        super(DenseBlock, self).__init__()
+        self.listLayers = []
+        for _ in range(num_convs):
+            self.listLayers.append(ConvBlock(num_channels))
+
+    def call(self, x):
+        for layer in self.listLayers.layers:
+            x = layer(x)
+        return x
+
+
+class TransitionBlock(tf.keras.layers.Layer):
+    """manages exploding growth rate from DenseBlock"""
+
+    def __init__(self, num_channels, **kwargs):
+        super(TransitionBlock, self).__init__(**kwargs)
+        self.batch_norm = BatchNormalization()
+        self.relu = ReLU()
+        self.conv = Conv2D(num_channels, kernel_size=1)
+        self.avg_pool = AvgPool2D(pool_size=2, strides=2)
+
+    def call(self, x):
+        x = self.batch_norm(x)
+        x = self.relu(x)
+        x = self.conv(x)
+        return self.avg_pool(x)
+
+
+def _db1():
+    net = _b1()
+
+    num_channels, growth_rate = 64, 32
+    num_convs_in_dense_blocks = [4, 4, 4, 4]
+
+    for i, num_convs in enumerate(num_convs_in_dense_blocks):
+
+        net.add(DenseBlock(num_convs, growth_rate))
+        num_channels += num_convs * growth_rate
+
+        if i != len(num_convs_in_dense_blocks) - 1:
+            num_channels //= 2
+            net.add(TransitionBlock(num_channels))
+
+    return net
+
+
+def build_densenet():
+
+    return Sequential(
+        [_db1(), BatchNormalization(), ReLU(), GlobalAvgPool2D(), Flatten(), Dense(10)]
+    )
+
+
+"""SENET"""
+
+
+class SqueezeExcite(tf.keras.layers.Layer):
+    "credits: https://github.com/moskomule/senet.pytorch/blob/master/senet/se_module.py#L4"
+    "translated from pytorch to tensorflow"
+
+    def __init__(self, c, r=16):
+        super().__init__()
+        self.squeeze = GlobalAvgPool2D()
+        self.excitation = Sequential(
+            [
+                Dense(c // r, use_bias=False),
+                ReLU(),
+                Dense(c, use_bias=False),
+                Activation("sigmoid"),
+            ]
+        )
+
+    def call(self, x):
+        *_, c = x.shape
+
+        y = self.squeeze(x)
+        y = self.excitation(y)
+
+        # print(y.shape)
+        # quit()
+
+        y = tf.reshape(y, [-1, 1, 1, c])
+        return x * y
+
+
+class SEResidual(tf.keras.Model):
+    """implements SE architecture on ResidualBlock"""
+
+    def __init__(self, num_channels, use_1x1conv=False, strides=1):
+        super().__init__()
+
+        self.conv1 = Conv2D(
+            num_channels, padding="same", kernel_size=3, strides=strides
+        )
+        self.conv2 = Conv2D(num_channels, kernel_size=3, padding="same")
+        self.conv3 = None
+
+        if use_1x1conv:
+            self.conv3 = Conv2D(num_channels, kernel_size=1, strides=strides)
+
+        self.bn1 = BatchNormalization()
+        self.bn2 = BatchNormalization()
+
+        self.se = SqueezeExcite(num_channels)
+
+    def call(self, X):
+        Y = tf.keras.activations.relu(self.bn1(self.conv1(X)))
+        Y = self.bn2(self.conv2(Y))
+        Y = self.se(Y)
+
+        if self.conv3 is not None:
+            X = self.conv3(X)
+        Y += X
+        return tf.keras.activations.relu(Y)
+
+
+class SEBlock(tf.keras.layers.Layer):
+    def __init__(self, num_channels, num_residuals, first_block=False, **kwargs):
+        super(ResnetBlock, self).__init__(**kwargs)
+        self.residual_layers = []
+        for i in range(num_residuals):
+            if i == 0 and not first_block:
+                self.residual_layers.append(
+                    SEResidual(num_channels, use_1x1conv=True, strides=2)
+                )
+            else:
+                self.residual_layers.append(SEResidual(num_channels))
+
+    def call(self, X):
+        for layer in self.residual_layers.layers:
+            X = layer(X)
+        return X
+
+
+def build_senet():
+    return build_resnet(use_se=True)
+
+
+"""OTHER"""
+
+
 def get_shapes(net):
     "prints output shapes to command line"
 
@@ -189,13 +436,26 @@ def get_shapes(net):
         print(blk.__class__.__name__, "output shape:\t", X.shape)
 
 
+def test_run(net):
+    X = tf.random.uniform((1, 28, 28, 1))
+
+    X = net(X)
+    print(X)
+    print(f'output shape: {X.shape}')
+    print(f'argmax X: {np.argmax(X)}')
+
+
 def main():
     """vgg-11"""
-    conv_arch = ((1, 64), (1, 128), (2, 256), (2, 512), (2, 512))
-    small_conv_arch = [(pair[0], pair[1] // 8) for pair in conv_arch]
-    model = vgg(conv_arch)
+    # conv_arch = ((1, 64), (1, 128), (2, 256), (2, 512), (2, 512))
+    # small_conv_arch = [(pair[0], pair[1] // 8) for pair in conv_arch]
+    # model = vgg(conv_arch)
 
-    get_shapes(model)
+    seres = build_resnet(use_se=True)
+
+    test_run(seres)
+
+    seres.summary()
 
 
 if __name__ == "__main__":

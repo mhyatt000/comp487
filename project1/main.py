@@ -67,7 +67,7 @@ def main():
 
     '''TODO add early stopping'''
     '''TODO train for only 5 epochs??? on MNIST'''
-    hist = model.fit(train_x, train_y, batch_size=32, epochs=50, verbose=1)
+    hist = model.fit(train_x, train_y, batch_size=32, epochs=5, verbose=1)
 
     stop = time.perf_counter()
     print(f'Finished in {round(stop-start, 2)} seconds')
