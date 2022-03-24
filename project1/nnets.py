@@ -321,7 +321,7 @@ def _db1():
     net = _b1()
 
     num_channels, growth_rate = 64, 32
-    num_convs_in_dense_blocks = [4, 4, 4, 4]
+    num_convs_in_dense_blocks = [4, 4, 4]
 
     for i, num_convs in enumerate(num_convs_in_dense_blocks):
 
@@ -427,6 +427,28 @@ def build_senet():
     return build_resnet(use_se=True)
 
 
+'''SHUFFLENET'''
+
+
+class ShuffleBlock(tf.keras.layers.Layer):
+    """like conv block but it shuffles stuff"""
+
+    def __init__(self, num_channels):
+        super(ShuffleBlock, self).__init__()
+        self.bn = BatchNormalization()
+        self.relu = ReLU()
+        self.conv = Conv2D(filters=num_channels, kernel_size=(3, 3), padding="same")
+
+        self.listLayers = [self.bn, self.relu, self.conv]
+
+    def call(self, x):
+        y = x
+        for layer in self.listLayers.layers:
+            y = layer(y)
+        y = tf.keras.layers.concatenate([x, y], axis=-1)
+        return y
+
+
 """OTHER"""
 
 
@@ -457,6 +479,8 @@ def main():
 
     test_run(model)
     get_shapes(model)
+
+    model.summary()
 
     # seres.summary()
 
