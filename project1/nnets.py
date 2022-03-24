@@ -12,6 +12,7 @@ from tensorflow.keras.layers import (
     BatchNormalization,
     Activation,
     ReLU,
+    Reshape
 )
 from tensorflow.keras.models import Sequential
 import numpy as np
@@ -31,7 +32,9 @@ def vgg_block(num_convs, num_channels):
 def build_vgg(conv_arch=()):
 
     if not conv_arch:
-        conv_arch = ((1, 64), (1, 128), (2, 256), (2, 512), (2, 512))
+        conv_arch = ((1, 64), (1, 128), (1, 256))
+        # # too many for mnist
+        # conv_arch = ((1, 64), (1, 128), (2, 256), (2, 512), (2, 512))
     print(f"vgg-{3+sum([item[0] for item in conv_arch])}")
 
     net = Sequential()
@@ -85,7 +88,7 @@ def build_nin():
             Dropout(0.5),
             # There are 10 label classes
             nin_block(10, kernel_size=3, strides=1, padding="same"),
-            GlobalAveragePooling2D(),
+            GlobalAvgPool2D(),
             Reshape((1, 1, 10)),
             # Transform the four-dimensional output into two-dimensional output
             # with a shape of (batch size, 10)
@@ -305,7 +308,7 @@ class TransitionBlock(tf.keras.layers.Layer):
         self.batch_norm = BatchNormalization()
         self.relu = ReLU()
         self.conv = Conv2D(num_channels, kernel_size=1)
-        self.avg_pool = AvgPool2D(pool_size=2, strides=2)
+        self.avg_pool = AveragePooling2D(pool_size=2, strides=2)
 
     def call(self, x):
         x = self.batch_norm(x)
@@ -335,7 +338,7 @@ def _db1():
 def build_densenet():
 
     return Sequential(
-        [_db1(), BatchNormalization(), ReLU(), GlobalAvgPool2D(), Flatten(), Dense(10)]
+        [*_db1().layers, BatchNormalization(), ReLU(), GlobalAvgPool2D(), Flatten(), Dense(10)]
     )
 
 
@@ -447,15 +450,15 @@ def test_run(net):
 
 def main():
     """vgg-11"""
-    # conv_arch = ((1, 64), (1, 128), (2, 256), (2, 512), (2, 512))
-    # small_conv_arch = [(pair[0], pair[1] // 8) for pair in conv_arch]
-    # model = vgg(conv_arch)
 
-    seres = build_resnet(use_se=True)
+    model = build_vgg()
 
-    test_run(seres)
+    # seres = build_resnet(use_se=True)
 
-    seres.summary()
+    test_run(model)
+    get_shapes(model)
+
+    # seres.summary()
 
 
 if __name__ == "__main__":

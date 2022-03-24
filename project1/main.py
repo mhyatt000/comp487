@@ -8,6 +8,7 @@ from tensorflow.keras.metrics import SparseCategoricalAccuracy
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import SGD, Adam, RMSprop
 from tensorflow.keras.regularizers import L1, L1L2, L2
+# import tensorflow_datasets as tfds
 
 import nnets
 
@@ -23,6 +24,8 @@ nxn are full connections on the pixel independent of others ... stride 0
 
 def get_dataset():
     '''TODO resize parameter? resize to 96 (original 224 but thats expensive)'''
+    # ds = tfds.load('mnist', split='train', shuffle_files=True)
+
     (train_x, train_y), (test_x, test_y) = tf.keras.datasets.mnist.load_data()
 
     train_x = train_x.reshape(-1, 28, 28, 1).astype("float32") / 255
@@ -43,7 +46,29 @@ def compile_model(model):
 def main():
 
     train_x, train_y, test_x, test_y = get_dataset()
-    model = nnets.vgg(conv_arch=((1, 64), (1, 128), (2, 256)))
+
+    models = []
+
+    models.append(nnets.build_vgg())
+    models.append(nnets.build_nin())
+    models.append(nnets.build_googlenet())
+    models.append(nnets.build_resnet())
+    models.append(nnets.build_densenet())
+    models.append(nnets.build_senet())
+
+    for model in models:
+
+        model = compile_model(model)
+        model(tf.random.uniform((1, 28, 28, 1)))
+        model.summary()
+
+        start = time.perf_counter()
+
+        '''TODO add early stopping'''
+        hist = model.fit(train_x, train_y, batch_size=32, epochs=5, verbose=1)
+
+        stop = time.perf_counter()
+        print(f'Finished in {round(stop-start, 2)} seconds')
 
     '''TODO add save/load weights and/or save/load entire model'''
 
@@ -58,19 +83,6 @@ def main():
         randomwidth
         randomzoom
     '''
-
-    model = compile_model(model)
-    model(tf.random.uniform((1, 28, 28, 1)))
-    model.summary()
-
-    start = time.perf_counter()
-
-    '''TODO add early stopping'''
-    '''TODO train for only 5 epochs??? on MNIST'''
-    hist = model.fit(train_x, train_y, batch_size=32, epochs=5, verbose=1)
-
-    stop = time.perf_counter()
-    print(f'Finished in {round(stop-start, 2)} seconds')
 
 
 if __name__ == '__main__':
