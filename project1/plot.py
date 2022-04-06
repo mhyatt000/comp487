@@ -15,7 +15,7 @@ def main():
 
     for m in data.keys():
 
-        ax.scatter(data[m][2], data[m][1], label=m)
+        ax.scatter(data[m][0], data[m][1], label=m)
 
     ax.set(title='Accuracy vs Training Time for various CNN',
            xlabel='Time (sec)', ylabel='Accuracy (%)')

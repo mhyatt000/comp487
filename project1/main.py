@@ -50,7 +50,7 @@ def main():
     models = []
 
     models.append(nnets.build_vgg())
-    models.append(nnets.build_nin())
+    # models.append(nnets.build_nin())
     models.append(nnets.build_googlenet())
     models.append(nnets.build_resnet())
     models.append(nnets.build_densenet())
