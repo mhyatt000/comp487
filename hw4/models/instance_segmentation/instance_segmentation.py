@@ -175,7 +175,7 @@ def train(net, train_iter, optimizer, *, env):
 
     timer = int(time.perf_counter() - timer)
     print(f'Finished in {timer} seconds')
-    
+
     print(f'{len(train_iter.dataset) / timer:.1f} examples/sec on {str(device)}')
 
 
@@ -226,7 +226,7 @@ def main():
 
     d2l.show_images(imgs[::3] + imgs[1::3] + imgs[2::3], 3, n, scale=2)
     # plt.pause(2)
-    plt.show()
+    # plt.show()
 
 if __name__ == '__main__':
     main()
