@@ -175,6 +175,7 @@ def train(net, train_iter, optimizer, *, env):
 
     timer = int(time.perf_counter() - timer)
     print(f'Finished in {timer} seconds')
+    
     print(f'{len(train_iter.dataset) / timer:.1f} examples/sec on {str(device)}')
 
 
@@ -224,6 +225,7 @@ def main():
         imgs += [X.permute(1, 2, 0), pred.cpu(), crop(test_labels[i]).permute(1, 2, 0)]
 
     d2l.show_images(imgs[::3] + imgs[1::3] + imgs[2::3], 3, n, scale=2)
+    # plt.pause(2)
     plt.show()
 
 if __name__ == '__main__':
