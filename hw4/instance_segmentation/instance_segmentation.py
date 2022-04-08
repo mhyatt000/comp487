@@ -192,17 +192,17 @@ def main():
     # define maps
     VOC_COLORMAP, VOC_CLASSES = get_voc_maps()
 
-    # batch data for training
-    print('getting training data...')
-    batch_size, crop_size = 32, (320, 480)
-    train_iter, test_iter = d2l.load_data_voc(batch_size, crop_size)
-
     # create a model
     net = build_model()
     if args.load:
         net.load_state_dict(torch.load(env.file))
     if args.verbose:
         summary(net, (3,*crop_size))
+
+    # batch data for training
+    print('getting training data...')
+    batch_size, crop_size = 32, (320, 480)
+    train_iter, test_iter = d2l.load_data_voc(batch_size, crop_size)
 
     # train
     lr, wd = 0.001, 1e-3
