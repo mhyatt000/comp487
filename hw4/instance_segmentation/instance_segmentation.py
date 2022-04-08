@@ -169,7 +169,7 @@ def train(net, train_iter, optimizer, *, env):
             # animator.add(epoch + 1, (loss.mean()))
 
             # save it ... after batch cuz it takes a while
-            if env.args.save:
+            if env.args.save and loss.mean() < min(losses):
                 torch.save(net.state_dict(), env.file)
 
         print(f'  pixelwise loss: {loss.mean()}')
