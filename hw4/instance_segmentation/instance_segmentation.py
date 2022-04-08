@@ -195,7 +195,10 @@ def main():
     # create a model
     net = build_model()
     if args.load:
-        net.load_state_dict(torch.load(env.file))
+        try:
+            net.load_state_dict(torch.load(env.file))
+        except:
+            pass
     if args.verbose:
         summary(net, (3,*crop_size))
 
@@ -209,7 +212,10 @@ def main():
     optimizer = torch.optim.SGD(net.parameters(), lr=lr, weight_decay=wd)
 
     if args.train:
-        train(net, train_iter, optimizer, env=env)
+        try:
+            train(net, train_iter, optimizer, env=env)
+        except:
+            quit()
 
     # do some predictions
     if args.eval:
