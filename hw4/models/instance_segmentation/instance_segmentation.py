@@ -20,13 +20,14 @@ def get_args():
     ap.add_argument('-s', '--save', action='store_true')
     ap.add_argument('-l', '--load', action='store_true')
     ap.add_argument('-t', '--train', action='store_true')
+    ap.add_argument('-e', '--eval', action='store_true')
     ap.add_argument('-v', '--verbose', action='store_true')
-    ap.add_argument('-e', '--epochs', type=int)
+    ap.add_argument('-n', '--num-epochs', type=int)
 
     args = ap.parse_args()
 
-    if not args.epochs:
-        args.epochs = 5
+    if not args.num_epochs:
+        args.num_epochs = 5
 
     return args
 
@@ -141,16 +142,16 @@ def train(net, train_iter, optimizer, *, env):
 
     timer = time.perf_counter()
 
-    # animator = d2l.Animator(xlabel='epoch', xlim=[1, epochs], legend=['pixelwise loss'])
+    # animator = d2l.Animator(xlabel='epoch', xlim=[1, num_epochs], legend=['pixelwise loss'])
 
-    epochs = env.args.epochs
+    num_epochs = env.args.num_epochs
 
     device = env.device
     net.to(device)
 
     losses = []
-    for epoch in range(epochs):
-        print(f'\nepoch: {epoch+1} of {epochs}')
+    for epoch in range(num_epochs):
+        print(f'\nepoch: {epoch+1} of {num_epochs}')
 
         net.train()
         for (features, target) in tqdm(train_iter):
@@ -168,7 +169,7 @@ def train(net, train_iter, optimizer, *, env):
             # animator.add(epoch + 1, (loss.mean()))
 
             # save it ... after batch cuz it takes a while
-            if env.args.save:
+            if env.args.save and loss.mean() < min(losses):
                 torch.save(net.state_dict(), env.file)
 
         print(f'  pixelwise loss: {loss.mean()}')
@@ -211,22 +212,24 @@ def main():
         train(net, train_iter, optimizer, env=env)
 
     # do some predictions
-    voc_dir = d2l.download_extract("voc2012", "VOCdevkit/VOC2012")
-    test_images, test_labels = d2l.read_voc_images(voc_dir, False)
+    if args.eval:
+        print('evaluation')
 
-    print('evaluation')
-    n, imgs = 4, []
-    for i in tqdm(range(n)):
-        crop_rect = (0, 0, 320, 480)
-        crop = lambda imgs: torchvision.transforms.functional.crop(imgs, *crop_rect)
+        voc_dir = d2l.download_extract("voc2012", "VOCdevkit/VOC2012")
+        test_images, test_labels = d2l.read_voc_images(voc_dir, False)
 
-        X = crop(test_images[i])
-        pred = label2image(predict(net, test_iter, X, env=env), env=env)
-        imgs += [X.permute(1, 2, 0), pred.cpu(), crop(test_labels[i]).permute(1, 2, 0)]
+        n, imgs = 4, []
+        for i in tqdm(range(n)):
+            crop_rect = (0, 0, 320, 480)
+            crop = lambda imgs: torchvision.transforms.functional.crop(imgs, *crop_rect)
 
-    d2l.show_images(imgs[::3] + imgs[1::3] + imgs[2::3], 3, n, scale=2)
-    # plt.pause(2)
-    # plt.show()
+            X = crop(test_images[i])
+            pred = label2image(predict(net, test_iter, X, env=env), env=env)
+            imgs += [X.permute(1, 2, 0), pred.cpu(), crop(test_labels[i]).permute(1, 2, 0)]
+
+        d2l.show_images(imgs[::3] + imgs[1::3] + imgs[2::3], 3, n, scale=2)
+        # plt.pause(2)
+        plt.show()
 
 if __name__ == '__main__':
     main()
