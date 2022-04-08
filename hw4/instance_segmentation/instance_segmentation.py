@@ -212,10 +212,7 @@ def main():
     optimizer = torch.optim.SGD(net.parameters(), lr=lr, weight_decay=wd)
 
     if args.train:
-        try:
-            train(net, train_iter, optimizer, env=env)
-        except:
-            quit()
+        train(net, train_iter, optimizer, env=env)
 
     # do some predictions
     if args.eval:
