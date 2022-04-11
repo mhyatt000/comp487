@@ -1,0 +1,11 @@
+torch
+torchvision
+torchsummary
+tensorflow
+
+numpy
+pandas
+matplotlib
+tqdm
+
+d2l
