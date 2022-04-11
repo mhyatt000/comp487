@@ -5,6 +5,8 @@ from argparse import ArgumentParser
 
 import torch
 import torchvision
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.nn.parallel import DataParallel as Parallel
 from d2l import torch as d2l
 from torch import nn
 from torch.nn import functional as F
@@ -201,6 +203,9 @@ def main():
             pass
     if args.verbose:
         summary(net, (3,*crop_size))
+
+    if torch.cuda.device_count() > 1:
+        net = Parallel(net)
 
     # batch data for training
     print('getting training data...')
