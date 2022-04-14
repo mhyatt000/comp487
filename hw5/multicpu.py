@@ -17,12 +17,18 @@ def main():
 
     print(time.perf_counter() - timer, 'seconds')
 
+    timer = time.perf_counter()
     with ProcessPoolExecutor() as executor:
         a = list(tqdm(executor.map(func, a), total=len(a)))
     print(time.perf_counter() - timer, 'seconds for process')
 
+    timer = time.perf_counter()
     with ThreadPoolExecutor() as executor:
         a = list(tqdm(executor.map(func, a), total=len(a)))
+    print(time.perf_counter() - timer, 'seconds for thread')
+
+    timer = time.perf_counter()
+    a = [i+1 for i in a]
     print(time.perf_counter() - timer, 'seconds for thread')
 
 
