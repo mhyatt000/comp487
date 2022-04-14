@@ -1,4 +1,4 @@
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import time
 import multiprocessing
 from tqdm import tqdm
@@ -18,10 +18,12 @@ def main():
     print(time.perf_counter() - timer, 'seconds')
 
     with ProcessPoolExecutor() as executor:
-
         a = list(tqdm(executor.map(func, a), total=len(a)))
+    print(time.perf_counter() - timer, 'seconds for process')
 
-    print(time.perf_counter() - timer, 'seconds')
+    with ThreadPoolExecutor() as executor:
+        a = list(tqdm(executor.map(func, a), total=len(a)))
+    print(time.perf_counter() - timer, 'seconds for thread')
 
 
 if __name__ == '__main__':
