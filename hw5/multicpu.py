@@ -19,7 +19,7 @@ def main():
 
     with ProcessPoolExecutor() as executor:
 
-        a = tqdm(executor.map(func, a), total=len(a))
+        a = list(tqdm(executor.map(func, a), total=len(a)))
 
     print(time.perf_counter() - timer, 'seconds')
 
