@@ -30,6 +30,7 @@ def get_args():
 
     if not args.num_epochs:
         args.num_epochs = 5
+        print('default 5 epochs')
 
     return args
 
