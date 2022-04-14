@@ -13,7 +13,7 @@ def main():
 
     timer = time.perf_counter()
 
-    a = [i for i in range(1_000_000)]
+    a = [i for i in range(1_000)]
 
     print(time.perf_counter() - timer, 'seconds')
 
