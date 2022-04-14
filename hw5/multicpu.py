@@ -29,7 +29,7 @@ def main():
 
     timer = time.perf_counter()
     a = [i+1 for i in a]
-    print(time.perf_counter() - timer, 'seconds for thread')
+    print(time.perf_counter() - timer, 'seconds for nothing')
 
 
 if __name__ == '__main__':
