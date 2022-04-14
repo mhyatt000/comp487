@@ -7,13 +7,16 @@ import torch
 import torchvision
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.nn.parallel import DataParallel as Parallel
-from d2l import torch as d2l
 from torch import nn
 from torch.nn import functional as F
 from torchsummary import summary
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
 
 def get_args():
 
@@ -41,13 +44,23 @@ class Environment():
     def __init__(self):
         pass
 
-def build_model():
 
-    # pretrained_net = pretrained something?
+class RNNModel(torch.nn.Module):
 
-    lstm_layer = nn.LSTM(18, 105542, 3)
+    def __init__(self):
+        super(RNNModel, self).__init__()
 
-    return lstm_layer
+        self.rnn = torch.nn.LSTM(input_size=18,hidden_size=256,num_layers=3)
+
+        self.hidden = torch.nn.Linear(256 , 512)
+        self.out = torch.nn.Linear(512 , 105542)
+
+    def forward(self, x):
+        print('test')
+        out, hidden_ = self.rnn(input)
+        print('test')
+        out = self.out(self.linear(out))
+        return out
 
 
 def train(net, train_iter, optimizer, *, env):
@@ -97,24 +110,21 @@ def main():
         env.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         env.args = args
 
-        print('test')
-        # create a model
-        net = build_model()
+        net = RNNModel()
+        print(net)
 
-        print('test')
+        train_iter = DataLoader(training_data, batch_size=64, shuffle=True)
+
         if args.load:
             try:
                 net.load_state_dict(torch.load(env.file))
             except:
                 pass
-        if args.verbose:
-            print('not verbose summary :(')
-            print(net)
-            # summary(net, (3,*crop_size))
 
         if torch.cuda.device_count() > 1:
             net = Parallel(net)
 
+        train_iter = torch.rand(size=(64,2,32,18))
 
         # train
         optimizer = torch.optim.SGD(net.parameters(), lr=0.001, weight_decay=1e-3)
