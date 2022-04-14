@@ -2,6 +2,9 @@ from concurrent.futures import ProcessPoolExecutor
 import time
 import multiprocessing
 
+def func(x):
+    return x+1
+
 
 def main():
 
@@ -15,7 +18,7 @@ def main():
 
     with ProcessPoolExecutor() as executor:
 
-        a = executor.map(lambda x: x+1, a)
+        a = executor.map(func, a)
 
     print(time.perf_counter() - timer, 'seconds')
 
