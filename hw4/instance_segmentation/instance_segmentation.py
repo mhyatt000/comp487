@@ -213,8 +213,7 @@ def main():
     train_iter, test_iter = d2l.load_data_voc(batch_size, crop_size)
 
     # train
-    lr, wd = 0.001, 1e-3
-    optimizer = torch.optim.SGD(net.parameters(), lr=lr, weight_decay=wd)
+    optimizer = torch.optim.SGD(net.parameters(), lr=0.001, weight_decay=1e-3)
 
     if args.train:
         train(net, train_iter, optimizer, env=env)
