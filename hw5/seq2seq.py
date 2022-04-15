@@ -47,42 +47,49 @@ class Environment():
 
 class Seq2SeqEncoder(nn.Module):
 
-    def __init__(self, vocab_size, embed_size, num_hiddens, num_layers, dropout=0, **kwargs):
+    def __init__(self, vocab_size, embed_size, num_hiddens, num_layers,
+                 dropout=0, **kwargs):
         super(Seq2SeqEncoder, self).__init__(**kwargs)
-
+        # Embedding layer
         self.embedding = nn.Embedding(vocab_size, embed_size)
-        self.rnn = nn.LSTM(embed_size, num_hiddens, num_layers, dropout=dropout)
+        self.rnn = nn.GRU(embed_size, num_hiddens, num_layers,
+                          dropout=dropout)
 
     def forward(self, X, *args):
-
+        # The output `X` shape: (`batch_size`, `num_steps`, `embed_size`)
         X = self.embedding(X)
+        # In RNN models, the first axis corresponds to time steps
         X = X.permute(1, 0, 2)
+        # When state is not mentioned, it defaults to zeros
         output, state = self.rnn(X)
-
+        # `output` shape: (`num_steps`, `batch_size`, `num_hiddens`)
+        # `state` shape: (`num_layers`, `batch_size`, `num_hiddens`)
         return output, state
-
 
 class Seq2SeqDecoder(nn.Module):
 
-    def __init__(self, vocab_size, embed_size, num_hiddens, num_layers, dropout=0, **kwargs):
+    def __init__(self, vocab_size, embed_size, num_hiddens, num_layers,
+                 dropout=0, **kwargs):
         super(Seq2SeqDecoder, self).__init__(**kwargs)
-
         self.embedding = nn.Embedding(vocab_size, embed_size)
-        self.rnn = nn.LSTM(embed_size + num_hiddens, num_hiddens, num_layers, dropout=dropout)
+        self.rnn = nn.GRU(embed_size + num_hiddens, num_hiddens, num_layers,
+                          dropout=dropout)
         self.dense = nn.Linear(num_hiddens, vocab_size)
 
     def init_state(self, enc_outputs, *args):
         return enc_outputs[1]
 
     def forward(self, X, state):
-
+        # The output `X` shape: (`num_steps`, `batch_size`, `embed_size`)
         X = self.embedding(X).permute(1, 0, 2)
-
+        # Broadcast `context` so it has the same `num_steps` as `X`
         context = state[-1].repeat(X.shape[0], 1, 1)
+
         X_and_context = torch.cat((X, context), 2)
         output, state = self.rnn(X_and_context, state)
         output = self.dense(output).permute(1, 0, 2)
-
+        # `output` shape: (`batch_size`, `num_steps`, `vocab_size`)
+        # `state` shape: (`num_layers`, `batch_size`, `num_hiddens`)
         return output, state
 
 class EncoderDecoder(nn.Module):
@@ -151,7 +158,7 @@ def train(net, train_iter, tgt_vocab, optimizer, *, env):
 
             Y_hat, _ = net(X, dec_input, X_valid_len)
             l = loss(Y_hat, Y, Y_valid_len)
-            l.backward()
+            l.sum().backward()
 
             nn.utils.clip_grad_norm_(net.parameters(), 1)
             optimizer.step()
@@ -245,8 +252,14 @@ def main():
     embed_size, num_hiddens, num_layers, dropout = 32, 512, 4, 0.1
     batch_size, num_steps = 64, 10
 
+    embed_size, num_hiddens, num_layers, dropout = 32, 32, 2, 0.1
+    batch_size, num_steps = 64, 10
+
+
     # get training data
     train_iter, src_vocab, tgt_vocab = d2l.load_data_nmt(batch_size, num_steps)
+
+    print(len(src_vocab), len(tgt_vocab))
 
     # create a model
     encoder = Seq2SeqEncoder(len(src_vocab), embed_size, num_hiddens, num_layers, dropout)
