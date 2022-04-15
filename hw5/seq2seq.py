@@ -259,8 +259,6 @@ def main():
     # get training data
     train_iter, src_vocab, tgt_vocab = d2l.load_data_nmt(batch_size, num_steps)
 
-    print(len(src_vocab), len(tgt_vocab))
-
     # create a model
     encoder = Seq2SeqEncoder(len(src_vocab), embed_size, num_hiddens, num_layers, dropout)
     decoder = Seq2SeqDecoder(len(tgt_vocab), embed_size, num_hiddens, num_layers, dropout)
