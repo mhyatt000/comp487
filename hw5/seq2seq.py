@@ -270,8 +270,8 @@ def main():
     if args.verbose:
         print(net)
 
-    if torch.cuda.device_count() > 1:
-        net = Parallel(net)
+    # if torch.cuda.device_count() > 1:
+    #     net = Parallel(net)
 
     # train
     optimizer = torch.optim.Adam(net.parameters(), lr=0.005)
