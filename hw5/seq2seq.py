@@ -163,9 +163,9 @@ def train(net, train_iter, tgt_vocab, optimizer, *, env):
 
             losses.append(l.sum())
 
-            # save it ... after batch cuz it takes a while
-            if env.args.save and l.mean() < min(losses):
-                torch.save(net.state_dict(), env.file)
+    # save it ... after all of training
+    if env.args.save and l.mean() < min(losses):
+        torch.save(net.state_dict(), env.file)
 
         print(f'loss: {l.sum()}')
 
@@ -305,7 +305,8 @@ def main():
         for eng, fra in zip(engs, fras):
             translation, attention_weight_seq = predict_seq2seq(
                 net, eng, src_vocab, tgt_vocab, num_steps, env.device)
-            print(f'{eng} => {translation}, bleu {bleu(translation, fra, k=2):.3f}')
+            print(f'{eng} => {translation}')
+            print(f'bleu {bleu(translation, fra, k=2):.3f}\n')
 
 if __name__ == "__main__":
     main()
