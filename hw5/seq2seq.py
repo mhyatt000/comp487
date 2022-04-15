@@ -261,13 +261,14 @@ def main():
     decoder = Seq2SeqDecoder(len(tgt_vocab), embed_size, num_hiddens, num_layers, dropout)
     net = EncoderDecoder(encoder, decoder)
 
-    net.apply(xavier_init_weights)
-
     if args.load:
         try:
             net.load_state_dict(torch.load(env.file))
         except:
-            pass
+            net.apply(xavier_init_weights)
+    else:
+        net.apply(xavier_init_weights)
+
 
     if args.verbose:
         print(net)
