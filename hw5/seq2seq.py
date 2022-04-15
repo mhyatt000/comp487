@@ -143,10 +143,9 @@ def train(net, train_iter, tgt_vocab, optimizer, *, env):
 
     loss = MaskedSoftmaxCELoss()
     losses = []
-    for epoch in range(num_epochs):
-        print(f'\nepoch: {epoch+1} of {num_epochs}')
+    for epoch in tqdm(range(num_epochs)):
 
-        for batch in tqdm(train_iter):
+        for batch in train_iter:
 
             optimizer.zero_grad()
 
@@ -167,7 +166,7 @@ def train(net, train_iter, tgt_vocab, optimizer, *, env):
     if env.args.save and l.mean() < min(losses):
         torch.save(net.state_dict(), env.file)
 
-        print(f'loss: {l.sum()}')
+    # print(f'loss: {l.sum()}')
 
     timer = int(time.perf_counter() - timer)
     print(f'Finished in {timer} seconds')
@@ -286,7 +285,7 @@ def main():
     if args.eval:
         print('evaluation')
 
-        print(f'loss after 300 epochs is 4.92')
+        print(f'loss after 2100 epochs (1hr) is _____')
 
         sentences = [
             'when I go to the store I buy bread and milk',
