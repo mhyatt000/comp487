@@ -252,9 +252,6 @@ def main():
     embed_size, num_hiddens, num_layers, dropout = 32, 512, 4, 0.1
     batch_size, num_steps = 64, 10
 
-    embed_size, num_hiddens, num_layers, dropout = 32, 32, 2, 0.1
-    batch_size, num_steps = 64, 10
-
 
     # get training data
     train_iter, src_vocab, tgt_vocab = d2l.load_data_nmt(batch_size, num_steps)
