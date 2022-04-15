@@ -3,5 +3,5 @@ __pycache__
 .DS_Store
 *.png
 *.zip
-data/
+data/*
 *.pt
