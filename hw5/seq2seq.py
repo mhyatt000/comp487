@@ -1,9 +1,3 @@
-"""Assignment 5: Machine translation and seq2seq modeling
-
-Use the model to predict multiple sentences.
-Extra (optional): Use BLEU to evaluate the predicted translations.
-Additional resources for assignment
-"""
 
 import collections
 import math
@@ -103,6 +97,10 @@ class EncoderDecoder(nn.Module):
         enc_outputs = self.encoder(enc_X, *args)
         dec_state = self.decoder.init_state(enc_outputs, *args)
         return self.decoder(dec_X, dec_state)
+
+    def predict(x):
+        self.eval()
+        pass
 
 
 def sequence_mask(X, valid_len, value=0):
@@ -243,6 +241,8 @@ def main():
 
     args = get_args()
 
+    '''TODO remove env ... attach variables to net for convenience'''
+
     env = Environment()
     env.file = __file__.split('/')[-1].split('.')[0] + '.pt'
     env.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -261,11 +261,13 @@ def main():
     decoder = Seq2SeqDecoder(len(tgt_vocab), embed_size, num_hiddens, num_layers, dropout)
     net = EncoderDecoder(encoder, decoder)
 
+    net.apply(xavier_init_weights)
+
     if args.load:
         try:
             net.load_state_dict(torch.load(env.file))
         except:
-            net.apply(xavier_init_weights)
+            pass
 
     if args.verbose:
         print(net)
@@ -283,16 +285,27 @@ def main():
     if args.eval:
         print('evaluation')
 
+        print(f'loss after 300 epochs is 4.92')
+
+        sentences = [
+            'when I go to the store I buy bread and milk',
+            'be quiet because the neighbors are sleeping',
+            'don\'t you have better things to be doing ?'
+        ]
+
+        for phrase in sentences:
+            # net.predict(s)
+            translation, attention_weight_seq = predict_seq2seq(net, phrase, src_vocab, tgt_vocab, num_steps, env.device)
+            print(f'{phrase} => {translation}')
+
+
         engs = ['go .', "i lost .", 'he\'s calm .', 'i\'m home .', 'my name is']
         fras = ['va !', 'j\'ai perdu .', 'il est calme .', 'je suis chez moi .','je m\'appelle']
+
         for eng, fra in zip(engs, fras):
             translation, attention_weight_seq = predict_seq2seq(
-                net, eng, src_vocab, tgt_vocab, num_steps, device)
+                net, eng, src_vocab, tgt_vocab, num_steps, env.device)
             print(f'{eng} => {translation}, bleu {bleu(translation, fra, k=2):.3f}')
-
-        phrase = 'i have'
-        translation, attention_weight_seq = predict_seq2seq(net, phrase, src_vocab, tgt_vocab, num_steps, device)
-        print(f'{phrase} => {translation}, bleu {bleu(translation, fra, k=2):.3f}')
 
 if __name__ == "__main__":
     main()
