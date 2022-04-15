@@ -11,6 +11,14 @@ import torch
 from torch import nn
 from d2l import torch as d2l
 from argparse import ArgumentParser
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.nn.parallel import DataParallel as Parallel
+
+from tqdm import tqdm
+import functools
+import os
+import time
+
 
 def get_args():
 
